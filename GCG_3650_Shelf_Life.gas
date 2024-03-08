@@ -1,0 +1,132 @@
+Program.Sub.ScreenSU.Start
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+V.Local.squery1.Declare(String)
+V.Local.sPart.Declare(String)
+V.Local.sRev.Declare(String)
+V.Local.sGSSPart.Declare(String)
+V.Local.sDate.Declare(String)
+V.Local.sSaveDate.Declare(String)
+V.Local.sExpDate.Declare(String)
+V.Local.sResult.Declare(String)
+V.Local.sTemp.Declare(String)
+V.Local.sPO.Declare(String)
+V.Local.iDays.Declare(Long)
+V.Local.iCount.Declare(Long)
+V.Local.i.Declare(Long)
+V.Local.dExp.Declare(Date)
+V.Local.bRet.Declare(Boolean)
+
+V.Local.iResult.Declare(Long)
+
+
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+F.Intrinsic.Control.SelectCase(V.Caller.Hook)
+	
+	F.Intrinsic.Control.Case(13280)
+	'make the fields always visible
+		'gab-lbl-1
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PL",190)
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PT",90)
+		F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PW",70)
+		F.Intrinsic.Variable.SetProperty("000124","PW",90)
+		F.Intrinsic.UI.ChangeCallerProperty(Variable.Passed.GAB-LBL-1,"Hide",0)
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-LBL-1,"Lock",0)
+		V.Passed.GAB-LBL-1.Set("No of Days")
+		'gab-TEXT-1
+		F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PL",190)
+		F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PT",110)
+		F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PW",50)
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-1,"Hide",0)
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-1,"Lock",0)
+	'Added in the number of days to text box if entry in table already existed. ************************************************************************************************************************
+		Function.Intrinsic.Control.If(Variable.Passed.000080,=,"Y")
+			Function.Intrinsic.String.Build("Select NO_OF_DAYS from ATG_3650_SHELF_LIFE where PART_NUMBER = '{0}'",Variable.Passed.PART,Variable.Local.squery1)
+			Function.ODBC.Connection!conx.OpenLocalRecordsetRO("rst",Variable.Local.squery1)
+			Function.Intrinsic.Control.If(Variable.ODBC.conx!rst.EOF,<>,True)
+				Variable.Passed.GAB-TEXT-1.Set(Variable.ODBC.conx!rst.FieldValTrim!NO_OF_DAYS)
+			Function.Intrinsic.Control.EndIf
+			Function.ODBC.conx!rst.Close
+		Function.Intrinsic.Control.EndIf
+'OK from inv options
+	F.Intrinsic.Control.Case(13290)
+	
+ 'new hook populate INVS010C
+		F.Intrinsic.Control.If(V.Passed.000080,=,"Y")
+			Function.Intrinsic.Control.If(Variable.Passed.GAB-TEXT-1.Long,>,0)
+				F.Intrinsic.String.Build("select count(*) from ATG_3650_SHELF_LIFE where Part_Number='{0}'",V.Passed.part,V.Local.squery1)
+				F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.squery1,V.Local.iResult)
+				F.Intrinsic.Control.If(V.Local.iResult,=,0)
+				'hardcoded value for testing 15
+					F.Intrinsic.String.Build("Insert into ATG_3650_SHELF_LIFE values('{0}','{1}')",V.Passed.part,V.Passed.GAB-TEXT-1,V.Local.squery1)
+				F.Intrinsic.Control.else
+				'hardcoded for testing
+					F.Intrinsic.String.Build("Update ATG_3650_SHELF_LIFE Set no_of_days='{1}' where Part_Number='{0}'",V.Passed.part,V.Passed.GAB-TEXT-1,V.local.squery1)
+				F.Intrinsic.Control.EndIf
+				F.ODBC.Connection!conx.Execute(V.Local.squery1)
+			F.Intrinsic.Control.Else
+				Function.Intrinsic.UI.Msgbox("Days until expiration was not updated.")
+			Function.Intrinsic.Control.EndIf
+		Function.Intrinsic.Control.EndIf
+
+	F.Intrinsic.Control.Case(16500)
+		V.Local.sPart.Set(V.Passed.000008)
+		F.Intrinsic.String.Build(" Select NO_Of_Days from ATG_3650_Shelf_Life where Part_Number = '{0}'",V.Local.sPart,V.Local.squery1)
+		F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.squery1,V.Local.iDays)
+			F.Intrinsic.Control.If(V.Local.iDays,>,0)
+				F.Intrinsic.Date.DateAdd("D",V.Local.iDays,V.Ambient.Date,V.Local.dExp)
+				'V.Passed.000153.Set(V.Local.iDays)
+				F.Intrinsic.UI.ChangeCallerProperty(V.Passed.000153,"Lock",1)
+				V.Passed.000152.set(V.Local.dExp)
+				F.Intrinsic.UI.ChangeCallerProperty(V.Passed.000152,"Lock",1)
+
+			F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.Control.Case(14680)
+		V.Local.sPart.Set(V.Passed.000001)
+		F.Intrinsic.String.Build(" Select NO_Of_Days from ATG_3650_Shelf_Life where Part_Number = '{0}'",V.Local.sPart,V.Local.squery1)
+		F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.squery1,V.Local.iDays)
+			F.Intrinsic.Control.If(V.Local.iDays,>,0)
+				F.Intrinsic.Date.DateAdd("D",V.Local.iDays,V.Ambient.Date,V.Local.dExp)
+				F.Intrinsic.String.Format(v.Local.dExp, "MM/DD/YYYY", v.Local.sDate)
+				'V.Passed.000066.Set(V.Local.iDays)
+				F.Intrinsic.UI.ChangeCallerProperty(V.Passed.000066,"Lock",1)
+				V.Passed.000070.Set(V.Local.sDate)
+				F.Intrinsic.UI.ChangeCallerProperty(V.Passed.000070,"Lock",1)
+
+			F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.Control.Case(16400)
+		V.Passed.000089.Set("Shelf Life")
+		V.Local.sPart.Set(V.Passed.000001)
+		F.Intrinsic.String.Build(" Select NO_Of_Days from ATG_3650_Shelf_Life where Part_Number = '{0}'",V.Local.sPart,V.Local.squery1)
+			F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.squery1,V.Local.iDays)
+			F.Intrinsic.Control.If(V.Local.iDays,>,0)
+				F.Intrinsic.Date.DateAdd("D",V.Local.iDays,V.Ambient.Date,V.Local.dExp)
+				F.Intrinsic.Date.DateAdd("D",V.Local.iDays,V.Ambient.Date,V.Local.dExp)
+				V.Passed.000070.Set(V.Local.dExp)
+				F.Intrinsic.UI.ChangeCallerProperty(V.Passed.000070,"Lock",1)
+				'V.Passed.000066.Set(V.Local.iDays)
+				F.Intrinsic.UI.ChangeCallerProperty(V.Passed.000066,"Lock",1)
+
+			F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.Control.Case(15600)
+				F.Intrinsic.UI.ChangeCallerProperty(V.Passed.000013,"Lock",1)
+				F.Intrinsic.UI.ChangeCallerProperty(V.Passed.000014,"Lock",1)
+
+
+F.Intrinsic.Control.EndSelect
+
+Program.Sub.Main.End
+
+Program.Sub.Comments.Start
+${$0$}$GCG_3650_Shelf_Life$}$SKC$}$4/19/2016$}$False
+Program.Sub.Comments.End
+
