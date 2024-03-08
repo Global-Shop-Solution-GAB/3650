@@ -1,0 +1,705 @@
+Program.Sub.ScreenSU.Start
+gui.ShelfLife..create
+gui.ShelfLife..caption("Shelf Life")
+gui.ShelfLife..size(3975,2985)
+gui.ShelfLife..minx(0)
+gui.ShelfLife..miny(0)
+gui.ShelfLife..position(0,0)
+gui.ShelfLife..event(unload,shelflife_unload)
+gui.ShelfLife..alwaysontop(False)
+gui.ShelfLife..fontname("Arial")
+gui.ShelfLife..fontsize(8)
+gui.ShelfLife..forecolor(0)
+gui.ShelfLife..fontstyle(,,,,)
+gui.ShelfLife..BackColor(-2147483633)
+gui.ShelfLife..controlbox(True)
+gui.ShelfLife..maxbutton(True)
+gui.ShelfLife..minbutton(True)
+gui.ShelfLife..mousepointer(0)
+gui.ShelfLife..moveable(True)
+gui.ShelfLife..sizeable(True)
+gui.ShelfLife..ShowInTaskBar(True)
+gui.ShelfLife..titlebar(True)
+gui.ShelfLife.lbl1.create(label,"Expiration date",True,1935,255,1,200,600,True,0,Arial,8,-2147483633,0)
+gui.ShelfLife.lbl1.defaultvalue("")
+gui.ShelfLife.lbl1.controlgroup(0)
+gui.ShelfLife.lbl2.create(label,"Warranty Months",False,1935,255,1,200,1200,True,0,Arial,8,-2147483633,0)
+gui.ShelfLife.lbl2.defaultvalue("")
+gui.ShelfLife.lbl2.controlgroup(0)
+gui.ShelfLife.txt_EXP_date.create(textbox,"",True,1215,300,0,1600,600,True,0,Arial,8,-2147483643,1)
+gui.ShelfLife.txt_EXP_date.defaultvalue("")
+gui.ShelfLife.txt_EXP_date.controlgroup(0)
+gui.ShelfLife.txt_Warr_months.create(textbox,"",False,1215,300,0,1575,1100,True,0,Arial,8,-2147483643,1)
+gui.ShelfLife.txt_Warr_months.defaultvalue("")
+gui.ShelfLife.txt_Warr_months.controlgroup(0)
+gui.ShelfLife.cmd1_Save.create(button)
+gui.ShelfLife.cmd1_Save.caption("Save")
+gui.ShelfLife.cmd1_Save.visible(True)
+gui.ShelfLife.cmd1_Save.size(855,375)
+gui.ShelfLife.cmd1_Save.zorder(0)
+gui.ShelfLife.cmd1_Save.position(200,1800)
+gui.ShelfLife.cmd1_Save.enabled(True)
+gui.ShelfLife.cmd1_Save.fontname("Arial")
+gui.ShelfLife.cmd1_Save.fontsize(8)
+gui.ShelfLife.cmd1_Save.event(click,cmd_save_click)
+gui.ShelfLife.cmd1_Save.defaultvalue("")
+gui.ShelfLife.cmd1_Save.controlgroup(0)
+
+
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+
+
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+
+V.Global.dExpirationDate.Declare(Date)
+V.Global.iWarrantyMonths.Declare(Long)
+V.Global.dReceiptDate.Declare(Date)
+
+V.global.sPart.Declare(String)
+V.global.sLocation.Declare(String)
+V.Global.sBin.Declare(String)
+V.Global.sLot.Declare(String)
+
+V.Local.squery.Declare(String)
+V.Local.iResult.Declare(Long)
+V.Local.sRESULT.Declare(String)
+V.Local.bTableExist.Declare(Boolean)
+
+V.Local.sTemp.Declare(String)
+V.Local.iRows.Declare(Long)
+V.Local.i.Declare(Long)
+V.Local.sScreenData.Declare(String)
+V.Local.retVar.Declare(String)
+
+
+
+V.Global.filehdl.Declare(Long)
+V.global.bExist.Declare(Boolean)
+V.global.sFile.Declare(String,"temp.txt")
+
+F.Intrinsic.String.Build("{0}\{1}",V.Ambient.CurDir,V.global.sFile,V.global.sFile)
+
+
+
+'debug
+F.Intrinsic.UI.Msgbox(V.Caller.Hook)
+
+'it is custom so, not yet universaly deployed.
+
+F.ODBC.Connection!conx.TableExists("Inv_Shelf_Life",V.Local.bTableExist)
+	F.Intrinsic.Control.If(V.Local.bTableExist,<>,True)
+		F.Intrinsic.UI.Msgbox("INV_Shelf_Life table does not exist. ")
+		F.Intrinsic.Control.end
+	F.Intrinsic.Control.EndIf
+
+
+
+'debug
+'F.Intrinsic.Debug.InvokeDebugger
+'F.Intrinsic.Debug.Stop
+
+
+
+F.Intrinsic.Control.SelectCase(V.Caller.Hook)
+
+
+F.Intrinsic.Control.Case(13280)
+
+
+
+	
+	'gab-lbl-1
+	F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PL",190)
+	F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PT",90)
+	F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PW",72)
+	
+	F.Intrinsic.UI.ChangeCallerProperty(Variable.Passed.GAB-LBL-1,"Hide",0)
+	F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-LBL-1,"Lock",0)
+	V.Passed.GAB-LBL-1.Set("No of Days")
+	
+	'gab-TEXT-1
+	F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PL",190)
+	F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PT",110)
+	F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PW",50)
+
+
+	F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-1,"Hide",0)
+	F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-1,"Lock",0)
+	
+	
+'OK from inv options
+	F.Intrinsic.Control.Case(13290)
+	
+ 'new hook populate INVS010C
+	
+	F.Intrinsic.Control.If(V.Passed.000080,=,"Y")
+	F.Intrinsic.Control.AndIf(V.Passed.GAB-TEXT-1.IsNumeric,=,True)
+	
+	'gab-lbl-1
+	
+	
+	'gab-TEXT-1
+	
+	
+		F.Intrinsic.String.Build("select count(*) from INV_Shelf_Life where Part_Number='{0}'",V.Passed.part,V.Local.squery)
+		F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.squery,V.Local.iResult)
+		
+		F.Intrinsic.Control.If(V.Local.iResult,=,0)
+		'hardcoded value for testing 15
+			F.Intrinsic.String.Build("Insert into INV_Shelf_Life values('{0}','{1}')",V.Passed.part,V.Passed.GAB-TEXT-1,V.Local.squery)
+			'	F.Intrinsic.String.Build("Insert into INV_Shelf_Life values('{0}','{1}')",V.Passed.part,v.passed.000000,V.Local.squery)
+		F.Intrinsic.Control.else
+		'hardcoded for testing
+			F.Intrinsic.String.Build("Update INV_Shelf_Life Set no_of_days='{1}' where Part_Number='{0}'",V.Passed.part,V.Passed.GAB-TEXT-1,V.local.squery)
+			'	F.Intrinsic.String.Build("Update INV_Shelf_Life Set no_of_days='{1}' where Part_Number='{0}'",V.Passed.part,v.passed.000000,V.local.squery)
+
+		F.Intrinsic.Control.EndIf
+		
+		F.ODBC.Connection!conx.Execute(V.Local.squery)
+	F.Intrinsic.Control.endif
+
+
+
+	
+' lot Stand alone	
+	F.Intrinsic.Control.Case(14680)
+	
+
+
+
+
+		V.Global.dReceiptDate.Set(V.Ambient.Date)
+		
+		
+		
+		F.Intrinsic.String.Build("select No_of_days  from INV_Shelf_Life where Part_Number='{0}'",V.Passed.000001,V.Local.squery)
+		F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.squery,V.Local.iResult)
+
+		
+		
+		
+
+	F.Intrinsic.Date.DateAdd("D",V.Local.iResult,V.Global.dReceiptDate,V.Global.dExpirationDate)
+	
+	'F.Intrinsic.Date.DateAdd("D",V.Local.iResult,V.Global.dReceiptDate,V.Passed.000070)
+
+	
+'	
+	F.Intrinsic.String.Format(V.Global.dExpirationDate,"mmddyyyy",V.Local.sTemp)
+	
+	F.Intrinsic.Date.ConvertDString(V.Local.sTemp,"mmddyyyy",V.Passed.000070)
+''	
+
+
+'
+
+
+'debug
+
+'F.Intrinsic.UI.Msgbox(V.Local.iResult,"days")
+'F.Intrinsic.UI.Msgbox(V.Passed.000070,"Post Set")
+	
+	
+	'stand alone  presave lot/bin
+	F.Intrinsic.Control.Case(14635)
+		F.Intrinsic.Control.CallSub(Presave)
+		
+		
+		
+	'stand alone post save
+	F.Intrinsic.Control.Case(14640)
+
+		F.Intrinsic.Control.CallSub(Postsave)
+
+
+
+
+'WIP tp FF populate
+
+	F.Intrinsic.Control.Case(16492)
+	
+		F.Intrinsic.File.Exists(V.global.sFile,V.global.bExist)
+		F.Intrinsic.Control.If(V.global.bExist,=,True)
+			F.Intrinsic.File.DeleteFile(V.global.sFile)
+		F.Intrinsic.Control.EndIf
+
+
+
+'Pus100
+	F.Intrinsic.Control.Case(15030)
+		
+
+		F.Intrinsic.String.Build("select flag_lot  from inventory_mstr where Part='{0}' ",V.Passed.000071,V.Local.squery)
+		F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.squery,V.Local.sResult)
+		
+		
+		F.Intrinsic.Control.If(V.Local.sRESULT,=,"Y")
+		
+			F.Intrinsic.String.Build("select No_of_days  from INV_Shelf_Life where Part_Number='{0}'",V.Passed.000071,V.Local.squery)
+			F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.squery,V.Local.iResult)
+			
+			
+			F.Intrinsic.Control.If(V.Local.iResult,=,0)
+					F.Intrinsic.UI.Msgbox("Please update the part's expiration days field in Inventory>File>Inventory Parts>Open . Select the part and click  Options.")
+					F.Intrinsic.Control.end
+			F.Intrinsic.Control.Endif
+			
+
+			F.Intrinsic.Date.ConvertDString(V.Passed.000009,"YYYYMMDD",V.Global.dReceiptDate)
+
+			F.Intrinsic.Date.DateAdd("D",V.Local.iResult,V.Global.dReceiptDate,V.Global.dExpirationDate)
+			
+			
+
+			F.Intrinsic.String.Format(V.Global.dExpirationDate,"mmddyyyy",V.Local.sRESULT)
+
+
+			F.Intrinsic.String.Build("Update Item_master set date_expiration='{0}' where part='{1}' and bin='{2}'",V.Local.sRESULT,V.Passed.000071,V.Passed.000264,V.Local.squery)
+			F.ODBC.Connection!conx.Execute(V.Local.squery)
+			
+			
+
+		F.Intrinsic.Control.EndIf
+
+
+'
+
+
+	'lotS/R->Trans->Sytandalone
+	F.Intrinsic.Control.Case(16400)
+	'part number
+
+'		if lot/bin
+		F.Intrinsic.String.Build("Select Flag_Lot from Inventory_mstr where part ='{0}'",V.Passed.000001,V.Local.squery)
+		F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.squery,V.Local.sRESULT)
+		F.Intrinsic.Control.If(V.Local.sRESULT,<>,"Y")
+			F.Intrinsic.Control.end
+		F.Intrinsic.Control.endif
+
+		
+		
+		F.Intrinsic.String.Build("{0}{1}",V.Passed.009001,V.Passed.009002,V.Local.sTemp)
+		
+	F.Intrinsic.String.Build("select date_last_received  from PO_Lines where Part='{0}' and Purchase_order='{1}' and record_no='{2}' ",V.Passed.000001,V.Passed.009000,V.Local.sTemp,V.Local.squery)
+		F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.squery,V.Local.sResult)
+		
+	
+		
+		
+
+	F.Intrinsic.Date.ConvertDString(V.Local.sResult,"MMDDYY",V.Global.dReceiptDate)
+	
+		
+		F.Intrinsic.String.Build("select No_of_days  from INV_Shelf_Life where Part_Number='{0}'",V.Passed.000001,V.Local.squery)
+		F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.squery,V.Local.iResult)
+
+
+		F.Intrinsic.Control.If(V.Local.sRESULT,=,V.Ambient.Null)
+	
+			F.Intrinsic.UI.Msgbox("Please update the part's expiration days field in Inventory>File>Inventory Parts>Open . Select the part and click  Options.")
+			F.Intrinsic.Control.end
+		F.Intrinsic.Control.endif
+		
+
+	F.Intrinsic.Date.DateAdd("D",V.Local.iResult,V.Global.dReceiptDate,V.Passed.000070)
+
+	
+	
+	'pre save lot/bin
+	F.Intrinsic.Control.Case(16410)
+		F.Intrinsic.Control.CallSub(Presave)
+
+	
+		'post save lot/bin
+	F.Intrinsic.Control.Case(16420)
+		F.Intrinsic.Control.CallSub(Postsave)
+
+
+
+	'pre save lot/bin
+	F.Intrinsic.Control.Case(16502)
+		F.Intrinsic.Control.CallSub(Presave)
+			
+		'post save lot/bin
+	F.Intrinsic.Control.Case(16504)
+		F.Intrinsic.Control.CallSub(Postsave)
+		
+		'assign lot bit pre save
+	F.Intrinsic.Control.Case(16510)
+		
+		F.Intrinsic.Control.CallSub(Presave)
+		
+		'assign lt bin post save
+	F.Intrinsic.Control.Case(16520)
+		F.Intrinsic.Control.CallSub(Postsave)
+		
+		
+		
+		'lot read from bdf
+		
+		F.Intrinsic.Control.Case(14730)
+		
+'		Function.Intrinsic.BDF.Load("bdf","AUX001")
+'	Function.Intrinsic.BDF.ReadRowCount("bdf",V.Local.iRows)
+'	Function.Intrinsic.Math.Sub(V.Local.iRows,1,V.Local.iRows)
+'	Function.Intrinsic.Control.For(V.Local.i,0,V.Local.iRows,1)
+'		
+'	
+'		
+'		Function.Intrinsic.BDF.ReadRow("bdf",V.local.i,V.Local.sScreenData)
+'		Function.Intrinsic.String.Split(V.Local.sScreenData,"|~|",V.Local.retVar)
+''              get data out of retVar
+'
+''debug
+'		F.Intrinsic.UI.Msgbox(V.Local.retVar(0))
+'
+'		
+'		V.Global.sLot.Set(V.Local.retVar(0))
+'		V.Global.sBin.Set(V.Local.retVar(1))
+	'	F.Intrinsic.Control.CallSub(Postsave)
+'
+'
+'
+'	F.Intrinsic.Control.Next(V.Local.i)
+
+	
+	F.Intrinsic.Control.CaseElse
+	
+		F.Intrinsic.UI.Msgbox("unhandled hook.")
+	
+	F.Intrinsic.Control.End
+	
+	
+F.Intrinsic.Control.EndSelect
+
+
+
+
+Program.Sub.Main.End
+
+program.sub.cmd_save_click.start
+
+V.Local.squery.Declare(String)
+V.Local.dDate.Declare(Date)
+V.Local.sError.Declare(String)
+
+'Function.Intrinsic.Date.ConvertDString(V.Screen.ShelfLife!txt_EXP_date.Text,"MM/DD/YYYY",V.Local.dDate)
+'
+'V.Global.dExpirationDate.Set(V.Local.dDate)
+'
+'V.Global.iWarrantyMonths.Set(V.Screen.ShelfLife!txt_Warr_months.text)
+
+
+
+'F.Intrinsic.String.Build("Update Item_master set date_expiration='{0}', Warranty_months='{1}' where Part='{2}' and location='{3}'",V.Global.dExpirationDate,V.Global.iWarrantyMonths,V.Global.sPart,V.Global.sLocation,V.Local.squery)
+
+
+
+F.Intrinsic.String.Build("update INV_shelf_life set no_of_days='{0}' where part_number='{1}'",V.Screen.ShelfLife!txt_EXP_date.Text,V.Global.sPart,V.Local.squery)
+
+
+F.Intrinsic.Control.SetErrorHandler("Error_handler")
+
+
+
+'debug
+
+'F.Intrinsic.UI.Msgbox(V.Passed.000007,V.Passed.000001)
+
+F.ODBC.Connection!conx.Execute(V.Local.squery)
+
+
+
+
+
+
+'errorhadling
+F.Intrinsic.Control.Label("Error_handler")
+F.Intrinsic.control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Concat(V.Local.sError,V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError,"Something went wrong")
+F.Intrinsic.Control.EndIf
+
+
+
+F.Intrinsic.Control.end
+
+program.sub.cmd_save_click.end
+
+Program.Sub.preSave.Start
+V.Local.iResult.Declare(Long)
+V.Local.sQuery.Declare(String)
+
+V.Local.sQuery2.Declare(String)
+V.Local.sLotBin.Declare(String)
+
+
+
+
+'validate if material has shelf life & NO days is 0, prompt to update Inv master
+
+
+
+
+F.Intrinsic.Control.SelectCase(V.Caller.Hook)
+
+
+F.Intrinsic.Control.Case(14635)
+
+
+	V.global.sPart.Set(V.passed.000003)
+	V.global.sLocation.Set(V.passed.000005)
+
+
+F.Intrinsic.Control.Case(16502)
+
+	V.global.sPart.Set(V.passed.000009)
+	V.global.sLocation.Set(V.passed.000010)
+	
+	
+
+F.Intrinsic.Control.Case(16510)
+
+	V.global.sPart.Set(V.passed.000008)
+'	V.global.sLot.Set(V.passed.000010)
+'	v.Global.sBin.Set(v.Passed.000011)
+	
+
+
+'several of the screens have the same field number conversion   hook:16410
+F.Intrinsic.Control.Caseelse
+
+	V.global.sPart.Set(V.passed.000001)
+	V.global.sLocation.Set(V.passed.000002)
+
+
+
+F.Intrinsic.Control.EndSelect
+
+
+F.Intrinsic.String.Build("Select No_of_days from INV_Shelf_Life where part_number ='{0}'",V.global.sPart,V.local.sQuery)
+'F.Intrinsic.String.Build("Select shelf_life  from INVENTORY_MST3 where part ='{0}' and location='{1}'",V.Global.sPart,V.global.sLocation,V.local.sQuery2)
+
+F.Intrinsic.String.Build("Select shelf_life  from INVENTORY_MST3 where part ='{0}'",V.Global.sPart,V.local.sQuery2)
+
+
+
+
+F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.sQuery2,V.Local.sLotBin)
+
+
+'making sure that there is bin/lot item
+F.Intrinsic.Control.If(V.Local.sLotBin,<>,"N")
+
+	F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.sQuery,V.Local.iresult)
+
+
+	F.Intrinsic.Control.If(V.Local.iResult,=,0)
+		'prompt update INV master
+		
+		
+		F.Intrinsic.UI.Msgbox("Please update the part's expiration days field in Inventory>File>Inventory Parts>Open . Select the part and click  Options.")
+		F.Intrinsic.Control.end
+
+		
+		
+'		F.Intrinsic.UI.Msgbox("This is a shelf life materials. Please input its longevity in days.")
+'		
+'		
+'		Gui.ShelfLife..Show
+		
+		
+		'debug
+		'F.Intrinsic.Control.end
+		
+		
+		
+	F.Intrinsic.Control.EndIf
+
+
+F.Intrinsic.Control.EndIf
+
+Program.Sub.PreSave.End
+
+Program.Sub.PostSave.Start
+'Update Expriry date and warranty months tp GSS for that part
+
+
+V.Local.sQuery.Declare(String)
+V.Local.iResult.Declare(Long)
+V.Local.sDate.Declare(String)
+
+
+
+
+F.Intrinsic.Control.SelectCase(V.Caller.Hook)
+
+F.Intrinsic.Control.Case(16420)
+'PO Receipt
+
+F.Intrinsic.Control.If(V.Passed.000066.IsNumeric,<>,True)
+	F.Intrinsic.UI.Msgbox("Please put in the warranty months number.")
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.String.Build("Update Item_master set Date_Expiration = '{0}', Warranty_months='{1}' where part  =  '{2}' and lot = '{3}' and bin = '{4}'",V.passed.000070,V.Passed.000066,V.Passed.000001,V.Passed.000061,V.Passed.000062,V.Local.squery)
+
+
+
+F.Intrinsic.Control.Case(14640)
+'PO Receipt
+
+	V.Global.sPart.Set(V.Passed.000003)
+	V.Global.slot.Set(V.Passed.000004)
+	V.Global.sBin.Set(V.Passed.000005)
+
+	F.Intrinsic.Date.ConvertDString(V.Passed.000007,"YYYYMMDD",V.Global.dReceiptDate)
+	
+	
+'lot/bin in I-T-Stand alone	
+	F.Intrinsic.Control.Case(14730)
+	V.Global.sPart.Set(V.Passed.000001)
+
+
+
+F.Intrinsic.Control.Case(16504)
+'
+'	V.Global.sPart.Set(V.Passed.000009)
+'	V.Global.slot.Set(V.Passed.000010)
+'	V.Global.sBin.Set(V.Passed.000011)
+'
+'	V.Global.dReceiptDate.Set(V.Ambient.Date)
+
+Variable.Local.EOF.declare(Boolean)
+Function.intrinsic.file.gethandle(Variable.global.filehdl)
+
+
+
+F.Intrinsic.File.Exists(V.global.sFile,V.global.bExist)
+F.Intrinsic.Control.If(V.global.bExist,<>,True)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndIf
+
+
+
+
+
+Function.intrinsic.file.openforread(V.global.sFile,V.global.filehdl)
+Function.intrinsic.control.do
+	Function.intrinsic.file.eof(Variable.global.filehdl,Variable.local.eof)
+	Function.intrinsic.control.if(Variable.local.eof,=,True)
+		Function.intrinsic.control.exitdo
+	Function.intrinsic.control.endif
+	Function.intrinsic.file.readline(Variable.global.filehdl,Variable.local.sQuery)
+
+
+	F.ODBC.Connection!conx.Execute(V.Local.sQuery)
+
+
+
+Function.intrinsic.control.loop
+
+'in the end remove the file
+F.Intrinsic.File.CloseFile(V.global.filehdl)
+F.Intrinsic.File.DeleteFile(V.global.sFile)
+
+
+
+
+
+
+'??? double check the passed
+F.Intrinsic.Control.Case(16520)
+
+'	since the data is not displayed using current date
+	V.Global.sPart.Set(V.Passed.000008)
+	V.Global.slot.Set(V.Passed.000010)
+	V.Global.sBin.Set(V.Passed.000011)
+	V.Global.dReceiptDate.Set(V.Ambient.Date)
+	
+	
+	F.Intrinsic.String.Build("select No_of_days  from INV_Shelf_Life where Part_Number='{0}'",V.Global.sPart,V.Local.squery)
+	F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.squery,V.Local.iResult)
+	
+	F.Intrinsic.Date.DateAdd("D",V.Local.iResult,V.Global.dReceiptDate,V.Global.dExpirationDate)
+	
+	'the date is stored differently between fields
+	'testing
+	F.Intrinsic.String.Format(V.Global.dExpirationDate,"mmddyyyy",V.Local.sDate)
+
+	
+	
+	
+	'write to file
+	F.Intrinsic.String.Build("Update Item_master set Date_Expiration='{0}' where part= '{1}' and lot='{2}' and bin='{3}'",V.Local.sDate,V.Global.sPart,V.Global.sLot,V.Global.sBin,V.Local.squery)
+
+
+
+
+	Function.intrinsic.file.gethandle(Variable.global.filehdl)
+	Function.Intrinsic.File.OpenForAppend(V.global.sFile,Variable.global.FileHdl)
+	F.Intrinsic.File.WriteLine(V.global.filehdl,V.Local.squery)
+	F.Intrinsic.File.CloseFile(V.global.filehdl)
+	F.Intrinsic.Control.End
+	
+	
+	
+
+		
+F.Intrinsic.Control.CaseElse
+
+'error
+F.Intrinsic.Control.end
+
+F.Intrinsic.Control.EndSelect
+
+'debug
+'F.Intrinsic.UI.Msgbox(V.Local.sQuery)
+
+F.Intrinsic.Control.If(V.Caller.Hook,<>,16420)
+	F.Intrinsic.String.Build("select No_of_days  from INV_Shelf_Life where Part_Number='{0}'",V.Global.sPart,V.Local.squery)
+	F.ODBC.Connection!conx.ExecuteAndReturn(V.Local.squery,V.Local.iResult)
+	
+	F.Intrinsic.Date.DateAdd("D",V.Local.iResult,V.Global.dReceiptDate,V.Global.dExpirationDate)
+	
+	'the date is stored differently between fields
+	'testing
+	F.Intrinsic.String.Format(V.Global.dExpirationDate,"mmddyyyy",V.Local.sDate)
+	
+	F.Intrinsic.Control.If(V.Caller.Hook,<>,14640)
+		F.Intrinsic.String.Build("Update Item_master set Date_Expiration='{0}' where part= '{1}' and lot='{2}' and bin='{3}'",V.Local.sDate,V.Global.sPart,V.Global.sLot,V.Global.sBin,V.Local.squery)
+	F.Intrinsic.Control.Else
+	'updating only new entries
+		F.Intrinsic.String.Build("Update Item_master set Date_Expiration='{0}' where part= '{1}' and Date_Expiration='00000000'",V.Local.sDate,V.Global.sPart,V.Local.squery)
+	F.Intrinsic.Control.endif
+
+
+
+	'F.Intrinsic.String.Build("Update Item_master set Date_Expiration = '{0}' where part= '{1}' and lot = '{2}' and bin='{3}'",V.Global.dExpirationDate,V.Local.sPart,V.Local.sLot,V.Local.sBin,V.Local.squery)
+
+F.Intrinsic.Control.Endif
+
+
+F.ODBC.Connection!conx.Execute(V.Local.sQuery)
+
+Program.Sub.PostSave.End
+
+program.sub.shelflife_unload.start
+'not closing
+
+
+Gui.ShelfLife..Visible(False)
+
+program.sub.shelflife_unload.end
+
+Program.Sub.Comments.Start
+${$0$}$$}$SUPERVSR$}$2/15/2016 1:08:12 PM
+Program.Sub.Comments.End
+
